@@ -35,6 +35,7 @@ public class TopicServiceImpl implements TopicService {
 	@Resource
 	private UserTopicDaoImp userTopicDao;
 	
+	private static final String DEFAULT_USERICON = "1.png";
 	
 	public Topic getTopic(String id) {
 		return topicdao.getTopic(id);
@@ -119,7 +120,7 @@ public class TopicServiceImpl implements TopicService {
 		for(int i=0;i<array1.size();i++){
 			JSONObject tempJsonObject = array1.getJSONObject(i);
 			String topicId=tempJsonObject.getString("id");
-			UserTopic usertopic =  userTopicDao.checkUserTopic(userID, topicId);
+			UserTopic usertopic =  userTopicDao.getUniqueUserTopicbyUserIdandTopicId(userID, topicId);
 			if(usertopic!= null){
 				tempJsonObject.put("isread", true);
 			}
@@ -136,6 +137,21 @@ public class TopicServiceImpl implements TopicService {
 	
 	}
 
+	@Override
+	public JSONObject getUserIconbyTopic(String userId, String topicId) {
+		JSONObject jsonObject= new JSONObject();
+		if(userTopicDao.getUniqueUserTopicbyUserIdandTopicId(userId, topicId) != null){
+			jsonObject.put("israndom", false);
+			jsonObject.put("iconname", userTopicDao.getUniqueUserTopicbyUserIdandTopicId(userId, topicId).getUserIcon());
+			return jsonObject;
+		}
+		else {
+			jsonObject.put("israndom", true);
+			jsonObject.put("iconname", DEFAULT_USERICON);
+			return jsonObject;
+		}
+	}
+	
 	public void updateUser_topic(String userID, String topicID) {
 		TimeUtil timeutil = new TimeUtil();
 		String lastVisitTime = timeutil.currentTimeStamp;
@@ -145,7 +161,7 @@ public class TopicServiceImpl implements TopicService {
 	}
 
 
-	public void createTopic(JSONObject topic){
+	public String createTopic(JSONObject topic){
 		TimeUtil timeutil = new TimeUtil();
 		String currentTime = timeutil.currentTimeStamp;
 		String title = topic.getString("title");
@@ -177,6 +193,8 @@ public class TopicServiceImpl implements TopicService {
 		newtopic.setPoi(null);
 		newtopic.setCreate_time(currentTime);
 		topicdao.addTopic(newtopic);
+		
+		return newid;
 	}
 
 

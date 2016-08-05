@@ -23,14 +23,19 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppC
     @ContextConfiguration(name = "child", locations = "classpath:spring-mvc.xml")
 })   
 @Transactional
-public class oauthLoginAndroidTest {
+public class MessageTest {
 
 	@Autowired  
     private WebApplicationContext wac;
 	private MockMvc mockMvc;     
 	
-	private String qq_AndroidJson ="{\"openID_qq\":\"usee_test_openid_qq2select ;\",\"nickname\":\"usee_test\","
-			+ "\"userIcon\":\"http://cdnq.duitang.com/uploads/item/201412/27/20141227140012_BV2Bu.jpeg\"}";  
+	private String getNewMsgsNumJson = "{\"userID\":\"866328023315987\","
+			+ "\"latestReadTime\":\"2016-07-27 17:49:10\"}"; 
+	
+	private String getNewMsgsJson = "{\"userID\":\"866328023315987select ;\","
+			+ "\"latestReadTime\":\"1469612947select ;\"}"; 
+	
+	private String getallMsgsJson = "{\"userID\":\"866328023315987\"}"; 
 	
 	@Before
 	public void setUp() throws Exception {
@@ -38,21 +43,52 @@ public class oauthLoginAndroidTest {
 	}
 
 	/**
-	 * Android端QQ登录测试
+	 * 得到新消息数目测试
 	 */
 	@Test
-	public void test() throws Exception{
-		mockMvc.perform((post("/oauthlogin/android"))
+	public void getNewMsgsNumTest() throws Exception{
+		mockMvc.perform((post("/message/getNewMsgsNum"))
 			.contentType(MediaType.APPLICATION_JSON_VALUE)
-			.content(qq_AndroidJson.getBytes()) 
+			.content(getNewMsgsNumJson.getBytes()) 
 			.accept(MediaType.parseMediaType("application/json;charset=UTF-8"))
 			)
 		.andExpect(status().isOk())
 		.andExpect(content().contentType("application/json;charset=UTF-8"))
-		.andExpect(jsonPath("$.user").exists())
-		.andExpect(jsonPath("$.user.password").isEmpty())
-		.andExpect(jsonPath("$.user.cellphone").isEmpty())
+		.andExpect(jsonPath("$.newMsgsNum").exists())
+		.andExpect(jsonPath("$.newMsgsNum").value(10))
 		;
 	}
-
+	
+	/**
+	 * 得到新消息测试
+	 */
+	@Test
+	public void getNewMsgsTest() throws Exception{
+		mockMvc.perform((post("/message/getNewMsgs"))
+			.contentType(MediaType.APPLICATION_JSON_VALUE)
+			.content(getNewMsgsJson.getBytes()) 
+			.accept(MediaType.parseMediaType("application/json;charset=UTF-8"))
+			)
+		.andExpect(status().isOk())
+		.andExpect(content().contentType("application/json;charset=UTF-8"))
+		.andExpect(jsonPath("$.newMsgs").exists())
+		;
+	}
+	
+	/**
+	 * 得到所有消息测试
+	 */
+	@Test
+	public void getallMsgsTest() throws Exception{
+		mockMvc.perform((post("/message/getallMsgs"))
+			.contentType(MediaType.APPLICATION_JSON_VALUE)
+			.content(getallMsgsJson.getBytes()) 
+			.accept(MediaType.parseMediaType("application/json;charset=UTF-8"))
+			)
+		.andExpect(status().isOk())
+		.andExpect(content().contentType("application/json;charset=UTF-8"))
+		.andExpect(jsonPath("$.allMsgs").exists())
+		;
+	}
+	
 }

@@ -5,13 +5,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.io.FileUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.usee.model.User;
+import com.usee.service.SqlInjectService;
 import com.usee.service.UserService;
 import com.usee.utils.Json2ObjectUtil;
 import com.usee.utils.MD5Util;
@@ -33,8 +35,11 @@ public class UserController {
 	//private static final String USERICON_PREFIX = "http://114.215.209.102/USee/";
 	private static final long VALIDITY_TIME = 600000;
 
-	@Resource
+	@Autowired
 	private UserService userService;
+	
+	@Autowired
+	private SqlInjectService sqlInjectService;
 
 	/**
 	 * 手机注册
@@ -48,8 +53,13 @@ public class UserController {
 	@RequestMapping("/signin")
 	public Map<String, Object> signin(@RequestBody String json) {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-
-		User user = Json2ObjectUtil.getUser(json);
+		// 防注入
+		String handJson = sqlInjectService.SqlInjectHandle(json);
+		User user = Json2ObjectUtil.getUser(handJson);
+		
+		System.out.println("-------------------");
+		System.out.println(user);
+		System.out.println("-------------------");
 		
 		String cellphone = user.getCellphone();
 		// 数据库中对应的手机号的user信息(发送验证码时保存的)
@@ -102,9 +112,10 @@ public class UserController {
 	@RequestMapping("/login")
 	public Map<String, Object> login(@RequestBody String json) {
 		Map<String, Object> map = new HashMap<String, Object>();
+		// 防注入
+		String handJson = sqlInjectService.SqlInjectHandle(json);
+		User user = Json2ObjectUtil.getUser(handJson);
 
-		User user = Json2ObjectUtil.getUser(json);
-		
 		String cellphone = user.getCellphone();
 		// 如果手机号不准确直接返回错误
 		if (cellphone.length() != 11 || cellphone.equals(DEFAULT_CELLPHONE) ||
@@ -141,8 +152,10 @@ public class UserController {
 	@RequestMapping("/forgetpassword")
 	public Map<String, Object> forgetPassword(@RequestBody String json) {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-
-		User user = Json2ObjectUtil.getUser(json);
+		// 防注入
+		String handJson = sqlInjectService.SqlInjectHandle(json);
+		User user = Json2ObjectUtil.getUser(handJson);
+		System.out.println(handJson);
 		
 		String cellphone = user.getCellphone();
 		// 数据库中对应的手机号的user信息
@@ -175,8 +188,7 @@ public class UserController {
 				// 还原密码
 				validateUser.setPassword(originPassword);
 				returnMap.put(RETURN_INFO, result);
-				returnMap.put("cellphone", validateUser.getCellphone());
-				returnMap.put("password", validateUser.getPassword());
+				returnMap.put("user", validateUser);
 				System.out.println(validateUser);
 				return returnMap;
 			} else {
@@ -193,14 +205,16 @@ public class UserController {
 	@RequestMapping("/modifypassword")
 	public Map<String, Object> modifyPassword(@RequestBody String json) {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-
+		// 防注入
+		String handJson = sqlInjectService.SqlInjectHandle(json);
+		System.out.println(handJson);
 		String userID = null;
 		String oldPassword = null;
 		String newPassword = null;
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 			Map<String, String> map = new HashMap<String, String>();
-			map = mapper.readValue(json, new TypeReference<Map<String, String>>() {
+			map = mapper.readValue(handJson, new TypeReference<Map<String, String>>() {
 			});
 			userID = map.get("userID");
 			oldPassword = map.get("oldPassword");
@@ -233,9 +247,13 @@ public class UserController {
 	@RequestMapping("/updateuser")
 	public Map<String, Object> updateUser(@RequestBody String json) {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
+		// 防注入
+		String handJson = sqlInjectService.SqlInjectHandle(json);
+		System.out.println(handJson);
 		
-		User updateUser = Json2ObjectUtil.getUser(json);
-
+		User updateUser = Json2ObjectUtil.getUser(handJson);
+		
+		
 		User user = userService.getUser(updateUser.getUserID());
 		if (updateUser.getGender() != user.getGender()) {
 			user.setGender(updateUser.getGender());
@@ -268,8 +286,10 @@ public class UserController {
 	@RequestMapping("/bindcellphone")
 	public Map<String, Object> bindCellphone(@RequestBody String json) {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-		
-		User user = Json2ObjectUtil.getUser(json);
+		// 防注入
+		String handJson = sqlInjectService.SqlInjectHandle(json);
+		User user = Json2ObjectUtil.getUser(handJson);
+		System.out.println(handJson);
 		
 		String cellphone = user.getCellphone();
 		
@@ -325,9 +345,10 @@ public class UserController {
 	@RequestMapping("/bindoauth")
 	public Map<String, Object> bindOAuth(@RequestBody String json) {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
-
-		User user = Json2ObjectUtil.getUser(json);
-		
+		// 防注入
+		String handJson = sqlInjectService.SqlInjectHandle(json);
+		User user = Json2ObjectUtil.getUser(handJson);
+		System.out.println(handJson);
 		User updateUser = userService.getUser(user.getUserID());
 		
 		User validateUser = null;
@@ -365,6 +386,38 @@ public class UserController {
 		returnMap.put("openID_wb", updateUser.getOpenID_wb());
 		return returnMap;
 	}
+	
+	/**
+	 * 解除绑定第三方社交账号
+	 */
+	@ResponseBody
+	@RequestMapping("/unbindoauth")
+	public Map<String, Object> unbindOAuth(@RequestBody String json) {
+		Map<String, Object> returnMap = new HashMap<String, Object>();
+		// 防注入
+		String handJson = sqlInjectService.SqlInjectHandle(json);
+		User user = Json2ObjectUtil.getUser(handJson);
+		System.out.println(handJson);
+		User updateUser = userService.getUser(user.getUserID());
+		
+		if (user.getOpenID_qq() != null && user.getOpenID_qq().equals(updateUser.getOpenID_qq())) {
+			updateUser.setOpenID_qq("");
+		}
+		if (user.getOpenID_wx() != null && user.getOpenID_wx().equals(updateUser.getOpenID_wx())) {
+			updateUser.setOpenID_wx("");
+		}
+		if (user.getOpenID_wb() != null && user.getOpenID_wb().equals(updateUser.getOpenID_wb())) {
+			updateUser.setOpenID_wb("");
+		}
+
+		userService.updateUser_OAuth(updateUser);
+		
+		returnMap.put("userID", updateUser.getUserID());
+		returnMap.put("openID_qq", updateUser.getOpenID_qq());
+		returnMap.put("openID_wx", updateUser.getOpenID_wx());
+		returnMap.put("openID_wb", updateUser.getOpenID_wb());
+		return returnMap;
+	}
 
 	/**
 	 * 上传用户头像
@@ -383,7 +436,7 @@ public class UserController {
 			returnInfo = "fileinexistence";
 		} else {
 			// 获取Web项目的全路径
-			realPath = request.getSession().getServletContext().getRealPath("/") + "userIcons\\";
+			realPath = request.getSession().getServletContext().getRealPath("/") + "userIcons";
 			System.out.println(realPath);
 			newFileName = userID + ".jpg";
 			FileUtils.copyInputStreamToFile(headPhotoFile.getInputStream(), new File(realPath, newFileName));
@@ -396,6 +449,23 @@ public class UserController {
 		returnMap.put(RETURN_INFO, returnInfo);
 		returnMap.put("userID", userID);
 		returnMap.put("userIcon", user.getUserIcon());
+		return returnMap;
+	}
+	
+	@ResponseBody
+	@RequestMapping(value = "getUserInfo", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public Map<String, Object> getUserInfo(@RequestBody String json) {
+		Map<String, Object> returnMap = new HashMap<String, Object>();
+		// 防注入
+		String handJson = sqlInjectService.SqlInjectHandle(json);
+		User user = Json2ObjectUtil.getUser(handJson);
+		System.out.println(handJson);
+		User getUser = userService.getUser(user.getUserID());
+		returnMap.put("userID", getUser.getUserID());
+		returnMap.put("gender", getUser.getGender());
+		returnMap.put("nickname", getUser.getNickname());
+		returnMap.put("userIcon", getUser.getUserIcon());
+		
 		return returnMap;
 	}
 	
